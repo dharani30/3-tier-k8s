@@ -1,0 +1,81 @@
+#!/bin/bash -ex
+#Install the base image 
+sudo apt-get -y  update
+sudo apt-get -y  install apt-transport-https curl
+sudo su -
+sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add
+sudo cat <<HEREDOC > /etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+HEREDOC
+
+ #Install Docker
+sudo apt-get install -y docker.io
+
+ #Install kubeadm, Kubelet, Kubectl and Kubernetes-cni
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl kubernetes-cni
+
+ #changing hostenames
+
+echo "kube-master" >/etc/hostname
+echo "kube-worker" >/etc/hostname
+echo "kube-worker-2" >/etc/hostname
+
+echo -e "10.0.2.157 kube-master\n10.0.2.30 kube-worker" >/etc/hosts
+
+
+ #Creating the Kubernetes Master Node
+kubeadm init --ignore-preflight-errors all
+
+ #Test the cluster
+kubectl get nodes
+
+ #Run the command from kubeadm init output
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+#Test the cluster
+kubectl get nodes
+
+ #the master node is showing NotReady status,The NotReady status will disappear after a CNI network is installed
+
+ kubectl get pods --all-namespaces
+
+ #Installing a CNI Network.
+sysctl net.bridge.bridge-nf-call-iptables=1
+export kubever=$(kubectl version | base64 | tr -d '\n')
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
+
+ kubectl get nodes
+
+ kubectl get pods --all-namespaces
+
+ #Creating the Kubernetes Slave Nodes
+#run the join command from kubeadm init screen output 
+ e.g:  kubeadm join 10.0.0.14:6443 --token 9omt2w.gmp9vzfd6ge5360g --discovery-token-ca-cert-hash sha256:57563267286a8c10b6304f50cf7d2bd6db50a3d714880dc1a543f88204c1572c --ignore-preflight-errors all
+
+ #Check that the nodes are ready.
+kubectl get nodes
+kubectl get pods --all-namespaces
+
+ #Deploy NGINX on the Kubernetes
+#From your masternode, create an nginx deployment
+kubectl get deployments
+kubectl create deployment nginx --image=nginx
+kubectl get deployments
+
+ #Make the NGINX container accessible via the internet
+
+ kubectl create service nodeport nginx --tcp=80:80
+kubectl get svc
+
+ #Verify that the NGINX deployment is successful by using curl on the slave node
+curl kube-worker-1:3xxxx<nodeport>
+
+ And in browser, you can checker http://<public-workernode-ip>:3xxxx<nodeport>
+
+
+
+
+ 
+

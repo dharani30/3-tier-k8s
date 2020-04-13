@@ -1,0 +1,4 @@
+ubuntu@ip-10-0-1-80:~$ sudo -i
+root@ip-10-0-1-80:~# vi 2020key.pem
+root@ip-10-0-1-80:~# chmod 600 2020key.pem
+root@ip-10-0-1-80:~# ssh -i 2020key.pem ubuntu@10.0.2.26
